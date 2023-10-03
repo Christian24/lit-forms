@@ -104,12 +104,14 @@ class RegisterDirective extends Directive {
                     el.name = String(name);
                     if (!this.#registered) {
                         el.addEventListener('blur', () => blur());
-                        el.addEventListener('input', (event) =>
-                            change(
-                                el.type === 'checkbox'
-                                    ? (event.target as HTMLInputElement).checked
-                                    : (event.target as HTMLInputElement).value
-                            )
+                        el.addEventListener('input', (event) => {
+                                console.log(event);
+                                change(
+                                    el.type === 'checkbox'
+                                        ? !(el as HTMLInputElement).checked
+                                        : (event.target as HTMLInputElement).value
+                                )
+                            }
                         );
                         el.addEventListener('focus', () => focus());
                     }
