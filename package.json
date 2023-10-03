@@ -1,0 +1,21 @@
+{
+  "name": "vite-lit-ts-starter",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@material/web": "^1.0.0",
+    "final-form": "^4.20.10",
+    "final-form-arrays": "^3.1.0",
+    "lit": "^2.8.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.2",
+    "vite": "^4.4.9"
+  }
+}
