@@ -12,14 +12,13 @@ import {
 } from 'final-form';
 
 
-export type { Config } from 'final-form';
+export type {Config} from 'final-form';
 
 const allFormSubscriptionItems = formSubscriptionItems.reduce<FormSubscription>(
     (acc, item) => ((acc[item as keyof FormSubscription] = true), acc),
     {}
 );
-type ArrayRenderItemCallback<T> = (item: T, register: (name: string)=> TemplateResult, index: number) => TemplateResult;
-
+type ArrayRenderItemCallback<T> = (item: T, register: (name: string) => TemplateResult, getFieldState: (fieldName: string) => FieldState<any> | undefined, index: number) => TemplateResult;
 
 
 export class FinalFormController<FormValues> implements ReactiveController {
@@ -61,7 +60,7 @@ export class FinalFormController<FormValues> implements ReactiveController {
         return registerDirective(this.form, name, fieldConfig);
     };
 
-    array = <K extends keyof FormValues>(name: K,  cb: ArrayRenderItemCallback<unknown>,  _fieldConfig?: FieldConfig<any>) => {
+    array = <K extends keyof FormValues>(name: K, cb: ArrayRenderItemCallback<unknown>, _fieldConfig?: FieldConfig<any>) => {
         return renderArrayDirective(this.form, name, cb, _fieldConfig)
     }
     update = <K extends keyof FormValues>(name: K, newValue: any) => {
@@ -71,9 +70,6 @@ export class FinalFormController<FormValues> implements ReactiveController {
     getValue = <K extends keyof FormValues>(name: K): FieldState<FormValues[K]> | undefined => {
         return this.form.getFieldState(name);
     }
-
-
-
 
 
 }
@@ -99,7 +95,7 @@ class RegisterDirective extends Directive {
             form.registerField(
                 name,
                 (fieldState) => {
-                    const { blur, change, focus, value } = fieldState;
+                    const {blur, change, focus, value} = fieldState;
                     const el = part.element as HTMLInputElement | HTMLSelectElement;
                     el.name = String(name);
                     if (!this.#registered) {
@@ -120,7 +116,7 @@ class RegisterDirective extends Directive {
                         el.value = value === undefined ? '' : value;
                     }
                 },
-                { value: true },
+                {value: true},
                 fieldConfig
             );
             this.#registered = true;
@@ -145,6 +141,7 @@ const registerDirective = directive(RegisterDirective);
 class RenderArrayDirective extends Directive {
     #registered = false;
     #value: any[] = [];
+
     constructor(partInfo: PartInfo) {
         super(partInfo);
         if (partInfo.type !== PartType.CHILD) {
@@ -156,34 +153,41 @@ class RenderArrayDirective extends Directive {
 
     update(
         part: ElementPart,
-        [form, name,  cb, fieldConfig]: Parameters<this['render']>
+        [form, name, cb, fieldConfig]: Parameters<this['render']>
     ) {
-if (!this.#registered) {
-    form.registerField(name, (fieldState) => {
-if (fieldState.value) {
-    this.#value = fieldState.value;
-}
-    }, { value: true }, fieldConfig)
-}
+        if (!this.#registered) {
+            form.registerField(name, (fieldState) => {
+                if (fieldState.value) {
+                    this.#value = fieldState.value;
+                } else {
+                    this.#value = [];
+                }
+            }, {value: true}, fieldConfig)
+        }
 
-        return this.render(form, name,  cb, fieldConfig);
+        return this.render(form, name, cb, fieldConfig);
     }
 
     // Can't get generics carried over from directive call
     render<T>(
         _form: FormApi<any>,
         _name: PropertyKey,
-cb: ArrayRenderItemCallback<T>,
+        cb: ArrayRenderItemCallback<T>,
         _fieldConfig?: FieldConfig<any>
     ) {
 
         return html`${this.#value.map((item: T, index: number) => {
-          
+            const arrayName = `${String(_name)}[${index}]`;
             const register = (elementName: string) => {
-                const name = `${String(_name)}[${index}].${elementName}`;
-                return registerDirective(_form,name, _fieldConfig);
-            } 
-            return cb(item, register as any, index);
+                const name = `${arrayName}.${elementName}`;
+                return registerDirective(_form, name, _fieldConfig);
+            }
+            const getFieldState = (elementName: string) => {
+                const name = `${arrayName}.${elementName}`;
+                return _form.getFieldState(name);
+            }
+           
+            return cb(item, register as any, getFieldState, index);
         })}`;
     }
 }
